@@ -1,0 +1,137 @@
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MDROS score</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Prompt&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    body { font-family: 'Prompt', sans-serif; }
+    .btn-option {
+      padding: 0.5rem 1.25rem;
+      border-radius: 0.5rem;
+      background-color: #E9D5FF;
+      color: #6B21A8;
+      font-weight: 600;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      transition: background-color 0.3s;
+    }
+    .btn-option:hover { background-color: #D8B4FE; }
+    .btn-option.active {
+      background-color: #A855F7;
+      color: white;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-b from-pink-200 via-purple-200 to-purple-300 flex flex-col">
+
+  <header class="relative flex flex-col items-center py-6 bg-white shadow-md">
+    <button id="resetBtn" class="absolute right-4 top-4 p-2 rounded-full bg-purple-200 hover:bg-purple-300 text-purple-800 shadow" title="รีเซตแบบประเมิน">🔄</button>
+    <img src="https://drive.google.com/uc?export=view&id=1m161YkkypHe40v_u9xkVguuoKgJ_6K4K" alt="MDROS Logo" class="w-[160px] mb-3" onerror="this.style.display='none';" />
+    <h1 class="text-center text-lg font-semibold text-gray-700 px-4">
+      โปรดกดปุ่มเลือกข้อความที่ท่านคิดว่าตรงตามการซักประวัติในแต่ละข้อ
+    </h1>
+  </header>
+
+  <main id="scoring" class="flex-grow container mx-auto px-4 py-6 max-w-xl w-full">
+    <div id="formCard" class="bg-white rounded-lg shadow-md p-6 space-y-6"></div>
+  </main>
+
+  <div class="container max-w-xl mx-auto px-4 pb-6">
+    <button id="calculateBtn" class="w-full py-4 mt-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xl font-bold rounded-lg shadow-md hover:from-pink-600 hover:to-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+      เริ่มการให้คะแนน
+    </button>
+  </div>
+
+  <footer class="bg-white text-center text-gray-400 text-sm py-4">
+    © 2025 MDROS score: ระบบการให้คะแนนปัจจัยเสี่ยง โดย กลุ่มงานการพยาบาลด้านการควบคุมและป้องกันการติดเชื้อ โรงพยาบาลนครพนม :: ฐิติมา เกษสิมมา
+  </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const questions = [
+        { id: 1, text: 'การมีประวัติเคยติดเชื้อดื้อยาต้านจุลชีพในโรงพยาบาล', scoreYes: 15, scoreNo: 0 },
+        { id: 2, text: 'การได้รับการสอดใส่ท่อหรือสายสวนเข้าสู่ร่างกาย', scoreYes: 10, scoreNo: 0 },
+        { id: 3, text: 'การมีแผลเรื้อรังหรือแผลติดเชื้อ', scoreYes: 4, scoreNo: 0 },
+        { id: 4, text: 'การมีประวัติการรักษาที่ทำให้ภูมิต้านทานร่างกายต่ำภายใน 3 เดือนที่ผ่านมา', scoreYes: 3, scoreNo: 0 },
+        { id: 5, text: 'การได้รับการรักษาด้วยยาลดกรดในกระเพาะอาหาร', scoreYes: 2, scoreNo: 0 },
+        { id: 6, text: 'การมีประวัติเคยรักษาด้วยยาต้านจุลชีพภายใน 3 เดือนที่ผ่านมา', scoreYes: 2, scoreNo: 0 },
+        { id: 7, text: 'เพศชาย', scoreYes: 2, scoreNo: 0 },
+        { id: 8, text: 'การเข้ารับการรักษาในหอผู้ป่วยวิกฤต', scoreYes: 2, scoreNo: 0 },
+        { id: 9, text: 'อายุ ≥ 60 ปี', scoreYes: 2, scoreNo: 0 },
+      ];
+
+      const formCard = document.getElementById('formCard');
+      const calculateBtn = document.getElementById('calculateBtn');
+      const resetBtn = document.getElementById('resetBtn');
+      let selectedOptions = {};
+
+      function createForm() {
+        formCard.innerHTML = '';
+        questions.forEach(q => {
+          const card = document.createElement('section');
+          card.className = 'bg-purple-50 rounded-lg p-4 shadow-sm';
+
+          const questionText = document.createElement('h2');
+          questionText.textContent = `ข้อ ${q.id} ${q.text}`;
+          questionText.className = 'font-semibold mb-3 text-gray-700';
+          card.appendChild(questionText);
+
+          ['ใช่', 'ไม่ใช่'].forEach(option => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn-option mr-3 mb-2';
+            btn.textContent = option;
+            btn.dataset.questionId = q.id;
+            btn.dataset.option = option;
+
+            btn.addEventListener('click', () => {
+              selectedOptions[q.id] = option;
+              const buttons = card.querySelectorAll('button.btn-option');
+              buttons.forEach(b => b.classList.remove('active'));
+              btn.classList.add('active');
+              calculateBtn.disabled = Object.keys(selectedOptions).length !== questions.length;
+            });
+
+            card.appendChild(btn);
+          });
+
+          formCard.appendChild(card);
+        });
+      }
+
+      createForm();
+
+      calculateBtn.addEventListener('click', () => {
+        let totalScore = 0;
+        questions.forEach(q => {
+          const answer = selectedOptions[q.id];
+          if (answer === 'ใช่') totalScore += q.scoreYes;
+        });
+
+        const riskGroup = totalScore < 15 ? 'ไม่เสี่ยง' : 'เสี่ยงสูง';
+        const riskColor = totalScore < 15 ? '#22C55E' : '#DC2626';
+
+        Swal.fire({
+          title: `คะแนนรวม: ${totalScore} จาก 42 คะแนน`,
+          html: `<p style="font-size:1.25rem; font-weight:600; color:${riskColor}; margin-top:0.5rem;">กลุ่มความเสี่ยง: ${riskGroup}</p>`,
+          icon: 'info',
+          confirmButtonText: 'ปิด',
+        });
+      });
+
+      resetBtn.addEventListener('click', () => {
+        selectedOptions = {};
+        calculateBtn.disabled = true;
+        formCard.querySelectorAll('button.btn-option').forEach(btn => btn.classList.remove('active'));
+      });
+    });
+  </script>
+</body>
+</html>
